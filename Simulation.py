@@ -71,7 +71,72 @@ class TradeNet(nn.Module):
         other_activated = torch.sigmoid(other_part)
         return torch.cat((first_activated, other_activated), dim=1)
 
+import torch
+import torch.nn as nn
+import math
 
+class PositionalEncoding(nn.Module):
+    """Добавляет информацию о порядке цен в последовательности"""
+    def __init__(self, d_model, max_len=5000):
+        super().__init__()
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        self.register_buffer('pe', pe)
+
+    def forward(self, x):
+        # x shape: [batch_size, seq_len, d_model]
+        x = x + self.pe[:x.size(1), :]
+        return x
+
+class TradeTransformer(nn.Module):
+    def __init__(self, input_size, d_model, nhead, num_layers, output_size, dim_feedforward=512):
+        super(TradeTransformer, self).__init__()
+
+        # 1. Проекция входной цены в размерность модели (d_model)
+        self.embedding = nn.Linear(input_size, d_model)
+
+        # 2. Позиционное кодирование (обязательно, т.к. в трансформере нет встроенного понятия очереди)
+        self.pos_encoder = PositionalEncoding(d_model)
+
+        # 3. Слой Transformer Encoder
+        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead,
+                                                    dim_feedforward=dim_feedforward,
+                                                    batch_first=True, dropout=0.1)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_layers)
+
+        # 4. Выходная голова
+        self.fc_out = nn.Linear(d_model, output_size)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        # x: [batch, seq_len] -> [batch, seq_len, 1]
+        if x.dim() == 2:
+            x = x.unsqueeze(-1)
+
+        # Подготовка данных
+        x = self.embedding(x) # [batch, seq_len, d_model]
+        x = self.pos_encoder(x)
+
+        # Проход через трансформер
+        output = self.transformer_encoder(x)
+
+        # Берем среднее по всем шагам или только последний шаг
+        # Для трейдинга лучше брать последний (самый актуальный)
+        out = output[:, -1, :]
+
+        out = self.fc_out(out)
+
+        # Ваша логика активации (из прошлых версий)
+        volume = self.relu(out[:, :1])
+        probs = torch.sigmoid(out[:, 1:])
+
+        return torch.cat((volume, probs), dim=1)
+
+# Пример инициализации:
+# d_model должен делиться на nhead без остатка!
 #--------------------------------------------------------
 #функция обвала рынка
 def crash(coin_list,percentage):
@@ -100,9 +165,9 @@ def stock_boom(coin_list,percentage):
 
 def main():
     steps = 2000 # шаги
-    users_count = 4 # кол-во юзеров
-    coins_count = 4# кол-во коинов
-    ai_users_count = 4
+    users_count = 2 # кол-во юзеров
+    coins_count = 8# кол-во коинов
+    ai_users_count = 16
     percent_to_stock = 1.5 # процент в биржу
 
     # создание главного коина
@@ -124,8 +189,8 @@ def main():
         users_list.append(u)
 
     for i in range(ai_users_count):
-        n_path = f'megakoinT2.pth'
-        model = TradeNetLSTM(1,2,128,4)
+        n_path = f'nanol_transformer.pth'
+        model = TradeTransformer(input_size=1, d_model=32, nhead=2, num_layers=2, output_size=4)
         model.load_state_dict(torch.load(n_path))
         model.eval()
         nick = f"{n_path.split('.')[0]}_{i}"
@@ -157,7 +222,7 @@ def main():
         for user in users_list:
 
             if user in ai_users:
-                print(user.nickname)
+                # print(user.nickname)
                 target_coin = random.choice(world_manager[1][1:])  # кроме world_coin
                 coin_history = history['prices'][target_coin.name]
 
@@ -172,6 +237,7 @@ def main():
                     with torch.no_grad():
                         # Предсказание: [Price_Ref, Buy_Prob, Sell_Prob, Hold_Prob]
                         prediction = model(input_data)
+                        # print(prediction)
 
 
                     probs = prediction[0, 1:]
@@ -180,6 +246,7 @@ def main():
                     if action_idx == 0:  # Buy
                         # Первый элемент для объема закупа
                         volume = int(prediction[0, 0].item() % 1000) + 1
+                        print(volume)
                         user.buy(volume, target_coin)
                     elif action_idx == 1:  # Sell
                         volume = int(prediction[0, 0].item() % 1000) + 1

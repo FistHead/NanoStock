@@ -26,15 +26,17 @@ class Coin:
 # print(world_coin.draw_statistics)
 
 class User:
-    def __init__(self, nickname='', wc_count=1000, wc_coin=None, coin_list = [],debug = False):
+    def __init__(self, nickname='', wc_count=1000, wc_coin=None, coin_list = [],model = '',debug = False):
         self.nickname = nickname
         self.wc_count = wc_count
         self.wc = wc_coin
         self.coin_list = coin_list
         self.debug = debug
+        self.model = model
 
         self.wallet = {}
         self.requests = []
+
 
     def initialize_nick(self):
         if self.nickname == '':
@@ -47,11 +49,12 @@ class User:
     def register_in_wc(self):
         self.wc.holders[self.nickname] = self.wc_count
         self.wallet[self.wc.name] = self.wc_count
+
         print(f'User: {self.nickname} registered in system')
 
     @property
     def draw_statistics(self):
-        return f'Nick: {self.nickname}, wallet: {self.wallet}, requests: {self.requests}'
+        return f'Nick: {self.nickname}, model: {type(self.model)}, wallet: {self.wallet}, requests: {self.requests}'
 
     # запрос покупки монеты
     def buy(self, buy_count, coin: Coin):
@@ -105,6 +108,12 @@ class User:
         if self.debug == True:
             print(self.draw_statistics)
         return sum_to_bank
+
+    def receive_yield(self, amount):
+        """Начисление базового дохода или процента на остаток (стейкинг)"""
+        self.wc_count += amount
+        self.wallet[self.wc.name] = self.wc_count
+        # увеличивает денежную массу, предотвращая дефляцию
 
 # demo_coin = Coin('demo', 14, 100)
 
