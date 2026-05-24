@@ -147,3 +147,10 @@ class StoryTeller(nn.Module):
 
 #============================================================================================
 
+class MipleDataset(Dataset):
+    def __init__(self, tokenizer, chat_history):
+        super().__init__()
+    def __len__(self):
+        pass
+    def __getitem__(self, index):
+        return super().__getitem__(index)
