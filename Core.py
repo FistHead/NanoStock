@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 
+from torch.utils import data
 from torch.utils.data import Dataset,DataLoader
 
 from tokenizers import ByteLevelBPETokenizer
@@ -149,18 +150,59 @@ class StoryTeller(nn.Module):
 #============================================================================================
 # датасетики
 
+class MainDataset(Dataset):
+    def __init__(self, texts, tokenizer, max_len=512, market_features=5, emotions_count=4):
+        self.tokenizer = tokenizer
+        self.max_len = max_len
+        self.market_features = market_features
+        self.emotions_count = emotions_count
+        
+        self.samples = []
+        for text in texts:
+            tokens = tokenizer.encode(text).ids
+            for i in range(0, len(tokens) - max_len, max_len):
+                self.samples.append(tokens[i:i + max_len])
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, index):
+        tokens = torch.tensor(self.samples[index], dtype=torch.long)
+        
+        prompt_seq = tokens
+        news_seq = tokens
+        target_seq = tokens 
+    
+        market_seq = torch.zeros((10, self.market_features), dtype=torch.float32) 
+        current_emotions = torch.zeros((self.emotions_count,), dtype=torch.float32)
+        
+        return market_seq, prompt_seq, news_seq, current_emotions, target_seq
+    
+#============================================================================================
+
 class MipleDataset(Dataset):
-    def __init__(self, tokenizer, history):
+    def __init__(self, tokenizer, history, max_len=512):
         super().__init__()
         self.tokenizer = tokenizer
-        self.history = history
-        
+
+        self.stocks_data = history['stocks_states']
+        self.messages_data = history['messages']
+        self.Events = history['events']
+        self.emotions_data = history['emotions']
+
+
+        self.max_len = max_len
+        self.chat_samples = []
+
+        for i in range(len(history)):
+            text = f"{self.messages_data[i]['input']} [SOS] {self.messages_data[i]['output']} [EOS]"
+            self.chat_samples.append(text)
+
     def __len__(self):
-        pass
+        return len(self.samples)
     def __getitem__(self, index):
         return super().__getitem__(index)
     
-#нужно дописать класс датасета мипла
     
 class TextDataset(Dataset): # текстовый датасет
     def __init__(self, text, tokenizer, max_len=512):

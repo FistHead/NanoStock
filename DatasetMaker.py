@@ -4,15 +4,6 @@ import asyncio
 from telethon import TelegramClient
 from bs4 import BeautifulSoup
 
-# тг парсер
-
-tg_api_id = 26402292
-tg_api_hash = '8f7ee20499752de0b70c8f3a323ce293'
-
-
-
-#============================================================================================
-#апи для дипсика
 
 api_key = "sk-FxRNhaFcfWRUiXWYd8kP3E0dhnrrKg4KaXXkIaYlzhwLyhFeVZzqSc5LLFFa"
 def get(prompt_text):
