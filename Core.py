@@ -53,6 +53,7 @@ class Request:
 
 
 #============================================================================================
+# юзер
 class User:
     def __init__(self, Name, Start_cap, Stocks, Model, idx, Network):
         self.idx = idx
@@ -102,7 +103,7 @@ class User:
         return self.wallet['WC'] + total_stock_value
         
 #============================================================================================
-
+#набросок соц-сети
 class SocialNetwork:
     def __init__(self, Name, Users):
         self.name = Name
@@ -119,7 +120,7 @@ class SocialNetwork:
         self.users.remove(user)
 
 #============================================================================================
-
+#модель рассказщика
 class StoryTeller(nn.Module):
     def __init__(self, window_size: int, vocab_size: int, emb_size: int, rules_count: int):
         super(StoryTeller, self).__init__()
@@ -146,11 +147,32 @@ class StoryTeller(nn.Module):
         return res
 
 #============================================================================================
+# датасетики
 
 class MipleDataset(Dataset):
-    def __init__(self, tokenizer, chat_history):
+    def __init__(self, tokenizer, history):
         super().__init__()
+        self.tokenizer = tokenizer
+        self.history = history
+        
     def __len__(self):
         pass
     def __getitem__(self, index):
         return super().__getitem__(index)
+    
+#нужно дописать класс датасета мипла
+    
+class TextDataset(Dataset): # текстовый датасет
+    def __init__(self, text, tokenizer, max_len=512):
+        self.tokenizer = tokenizer
+        self.max_len = max_len
+        
+        # урезка текста до определенной длины
+        self.tokens = tokenizer.encode(text).ids
+        self.samples = [self.tokens[i:i + max_len] for i in range(0, len(self.tokens), max_len)]
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, item):
+        return torch.tensor(self.samples[item], dtype=torch.long)
