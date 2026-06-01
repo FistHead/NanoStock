@@ -21,8 +21,9 @@ from torchinfo import summary
 #============================================================================================
 
 class Stock:
-    def __init__(self, name, price, volume):
+    def __init__(self, name, theme, price, volume):
         self.name = name
+        self.themes = theme
         self.price = price
 
         self.volume = volume
@@ -56,12 +57,13 @@ class Request:
 #============================================================================================
 # юзер
 class User:
-    def __init__(self, Name, Start_cap, Stocks, Model, idx, Network):
+    def __init__(self, Name, Start_cap, Stocks,Sentiments, Model, idx, Network):
         self.idx = idx
         self.name = Name
         self.network = Network
 
         self.stocks = Stocks
+        self.sentiments = Sentiments
 
         self.wallet = {'WC': Start_cap}
         self.requests = []
@@ -69,7 +71,8 @@ class User:
         if Model != None:
             self.model = Model
         else:
-            raise Exception('Невозможно зарегистрировать пользователя без модели') 
+            pass
+            # raise Exception('Невозможно зарегистрировать пользователя без модели') 
 
     def send_message(self, text: str):
         self.network.global_chat[self.name] = text
@@ -180,41 +183,6 @@ class MainDataset(Dataset):
     
 #============================================================================================
 
-class MipleDataset(Dataset):
-    def __init__(self, tokenizer, history, max_len=512):
-        super().__init__()
-        self.tokenizer = tokenizer
-
-        self.stocks_data = history['stocks_states']
-        self.messages_data = history['messages']
-        self.Events = history['events']
-        self.emotions_data = history['emotions']
-
-
-        self.max_len = max_len
-        self.chat_samples = []
-
-        for i in range(len(history)):
-            text = f"{self.messages_data[i]['input']} [SOS] {self.messages_data[i]['output']} [EOS]"
-            self.chat_samples.append(text)
-
-    def __len__(self):
-        return len(self.samples)
-    def __getitem__(self, index):
-        return super().__getitem__(index)
-    
-    
-class TextDataset(Dataset): # текстовый датасет
-    def __init__(self, text, tokenizer, max_len=512):
-        self.tokenizer = tokenizer
-        self.max_len = max_len
-        
-        # урезка текста до определенной длины
-        self.tokens = tokenizer.encode(text).ids
-        self.samples = [self.tokens[i:i + max_len] for i in range(0, len(self.tokens), max_len)]
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, item):
-        return torch.tensor(self.samples[item], dtype=torch.long)
+class World:
+    def __init__(self):
+        pass

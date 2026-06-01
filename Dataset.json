@@ -1,0 +1,11 @@
+[
+    {
+        "answer": "",
+        "messages": [],
+        "emotions": [],
+        "events": [],
+        "basic_sentiments_parameters": [0,0,0,0,0,0,0],
+        "stocks_states": {}, // название акции : [сфера акции, цена, направление (рост/падение), волатильность]
+        "decisions": [0,0,0] //buy sell hold
+    }
+]
