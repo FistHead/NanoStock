@@ -1,188 +1,191 @@
-import matplotlib.pyplot as plt
-import json
-import os
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.autograd import Variable
-
-from torch.utils import data
-from torch.utils.data import Dataset,DataLoader
-
-from tokenizers import ByteLevelBPETokenizer
-from tokenizers.trainers import BpeTrainer
-from tokenizers import Tokenizer, models, pre_tokenizers, decoders, trainers, processors
-from tokenizers.models import BPE
-from tokenizers.pre_tokenizers import Whitespace
+import math
 import random
-from torchinfo import summary
 
-#============================================================================================
+class Core:
+    def __init__(self):
+        self.requests_queue = []
+    
+    def add_request(self, request):
+        self.requests_queue.append(request)
+        
+    def process_requests(self):
+        while self.requests_queue:
+            request = self.requests_queue.pop(0)
+            request.complete()
 
-class Stock:
-    def __init__(self, name, theme, price, volume):
+class User:
+    def __init__(self, name, balance, core):
         self.name = name
-        self.themes = theme
-        self.price = price
+        self.balance = balance
+        self.holdings = {}
+        self.core = core
 
-        self.volume = volume
-        self.market_volume = 0
+    def get_portfolio_info(self):
+        return {
+            "name": self.name,
+            "balance": self.balance,
+            "holdings": self.holdings
+        }
 
-        self.price_history = [price]
-        self.candles = []
+    def buy_stock(self, stock, count):
+        if count <= 0:
+            return False
+        total_price = stock.get_price() * count
+        if self.balance >= total_price:
+            self.balance -= total_price
+            req = Request("buy", stock, count, self)
+            self.core.add_request(req)
+            return True
+        return False
 
-#============================================================================================
+    def sell_stock(self, stock, count):
+        if count <= 0:
+            return False
+        if self.holdings.get(stock.name, 0) >= count:
+
+            self.holdings[stock.name] -= count
+            if self.holdings[stock.name] == 0:
+                del self.holdings[stock.name]
+                
+            req = Request("sell", stock, count, self)
+            self.core.add_request(req)
+            return True
+        return False
+
 
 class Request:
-    def __init__(self, user, type, stock, vol):
-        if type == 'buy':
-            stock.market_volume += vol
-            user.wallet['WC'] -= stock.price * vol
-            user.wallet[stock.name] = user.wallet.get(stock.name, 0) + vol
-            stock.price *= (1 + (vol / stock.volume))
+    def __init__(self, type, stock, count, user):
+        self.type = type
+        self.stock = stock
+        self.count = count
+        self.user = user
 
-            stock.price_history.append(stock.price)
-        elif type == 'sell':
-            stock.market_volume -= vol
-            user.wallet['WC'] += stock.price * vol
-            user.wallet[stock.name] = user.wallet.get(stock.name, 0) - vol
-            stock.price *= (1 - (vol / stock.volume))
-
-            stock.price_history.append(stock.price)
-        else:
-            pass
-
-
-#============================================================================================
-# юзер
-class User:
-    def __init__(self, Name, Start_cap, Stocks,Sentiments, Model, idx, Network):
-        self.idx = idx
-        self.name = Name
-        self.network = Network
-
-        self.stocks = Stocks
-        self.sentiments = Sentiments
-
-        self.wallet = {'WC': Start_cap}
-        self.requests = []
-
-        if Model != None:
-            self.model = Model
-        else:
-            pass
-            # raise Exception('Невозможно зарегистрировать пользователя без модели') 
-
-    def send_message(self, text: str):
-        self.network.global_chat[self.name] = text
-
-    def send_request(self, type, stock, vol):
-        cost = stock.price * vol
-        if type == 'buy':
-            if cost <= self.wallet['WC']:
-                if vol > stock.volume:
-                    return False, 0
-                if vol < 0:
-                    return False, 0
-                Request(self, type, stock, vol)
-                return True, vol
-            return False, 0
-
-        elif type == 'sell' and stock.name in self.wallet:
-            if vol > stock.volume:
-                return False, 0
-            if vol < 0:
-                return False, 0
-            if self.wallet.get(stock.name, 0) < vol:
-                return False, 0
-
-            Request(self, type, stock, vol)
-            return True, vol
-
-        return False, 0
-    
-    def get_total_wealth(self, all_stocks_prices):
-        total_stock_value = sum(self.wallet.get(name, 0) * price for name, price in all_stocks_prices.items())
-        return self.wallet['WC'] + total_stock_value
+    def complete(self):
+        delta = self.count / self.stock.get_total_count()
         
-#============================================================================================
-#набросок соц-сети
-class SocialNetwork:
-    def __init__(self, Name, Users):
-        self.name = Name
-        self.users = Users
-        self.global_chat = {}
+        if self.type == "buy":
+            self.user.holdings[self.stock.name] = self.user.holdings.get(self.stock.name, 0) + self.count
+            self.stock.holders[self.user.name] = self.stock.holders.get(self.user.name, 0) + self.count
+            
+            # Рост цены: умножение на (1 + delta)
+            coefficient = 1 + delta
+            self.stock.apply_impact(coefficient)
+            
+        elif self.type == "sell":
+            # Начисление денег по актуальной цене исполнения ордера
+            current_price = self.stock.get_price()
+            payout = current_price * self.count
+            self.user.balance += payout
+            
+            self.stock.holders[self.user.name] = self.stock.holders.get(self.user.name, 0) - self.count
+            if self.stock.holders[self.user.name] <= 0:
+                if self.user.name in self.stock.holders:
+                    del self.stock.holders[self.user.name]
+            
+            coefficient = 1 / (1 + delta)
+            self.stock.apply_impact(coefficient)
 
-    def __len__(self):
-        return len(self.users)
 
-    def add_user(self, user):
-        self.users.append(user)
+class Stock:
+    def __init__(self, name, count, invested):
+        self.name = name
+        self.total_shares = count
+        self.__price = invested / count
+        self.holders = {}
+        self.price_history = [self.__price]
 
-    def remove_user(self, user):
-        self.users.remove(user)
+    def current_volatility(self):
+        if len(self.price_history) < 2:
+            return 0
+        mean_price = sum(self.price_history) / len(self.price_history)
+        variance = sum((price - mean_price) ** 2 for price in self.price_history) / len(self.price_history)
+        return math.sqrt(variance)
+    
+    def get_total_price(self):
+        return self.__price * self.get_total_count()
+    
+    def get_total_users(self):
+        return len(self.holders)
+    
+    def get_price(self):
+        return self.__price
+    
+    def get_step_info(self, step_data):
+        info = {
+            "name": self.name,
+            "price": self.__price,
+            "total_count": self.get_total_count(),
+            "total_price": self.get_total_price(),
+            "total_users": self.get_total_users(),
+            "volatility": self.current_volatility(),
+            "high": max(step_data),
+            "low": min(step_data),
+            "open": step_data[0],
+            "close": step_data[-1]
+        }
+        return info
+    
+    def apply_impact(self, impact_coefficient):
+        self.__price = max(0.01, self.__price * impact_coefficient)
+        self.price_history.append(self.__price)
+    
+    def get_total_count(self):
+        return self.total_shares
 
-#============================================================================================
-#модель рассказщика
-class StoryTeller(nn.Module):
-    def __init__(self, window_size: int, vocab_size: int, emb_size: int, rules_count: int):
-        super(StoryTeller, self).__init__()
 
-        self.time_window = nn.Sequential(
-            nn.Linear(window_size, emb_size),
-            nn.Linear(emb_size, rules_count)
+class Bot(User):
+    def __init__(self, name, balance, core, strategy):
+        super().__init__(name, balance, core)
+        self.strategy = strategy
+
+
+class Event:
+    def __init__(self, description, impact, stocks_affected):
+        self.description = description
+        self.impact = impact  # Коэффициент вроде 1.05 или 0.95
+        self.stocks_affected = stocks_affected
+
+    def apply(self):
+        for stock in self.stocks_affected:
+            stock.apply_impact(self.impact)
+            
+class Bot(User):
+    def __init__(self, name, balance, core, mood, affector_model, word_blocks, idx_2w):
+        super().__init__(name, balance, core)
+        self.mood = mood
+        self.affector_model = affector_model
+        self.word_blocks = word_blocks
+        self.idx_2w = idx_2w
+
+    def evaluate_market(self, news_context, stock):
+        """ Бот анализирует новость через AffectorText и принимает торговое решение """
+        thought, confidence = self.affector_model.generate_with_confidence(
+            prompt=news_context,
+            current_mood=self.mood,
+            word_blocks=self.word_blocks,
+            idx_2w=self.idx_2w,
+            max_len=15
         )
-
-        self.chat_inflation = nn.Linear(emb_size, rules_count)
-
-        self.embedding = nn.Embedding(vocab_size, emb_size)
-        self.summary_layer = nn.Linear(rules_count * 2, rules_count)
-
-    def forward(self, text, history):
-        emb = self.embedding(text)
-        history = self.time_window(history)
-        emb_mean = torch.mean(emb, dim=1)
-        chat_inf = self.chat_inflation(emb_mean)
         
-        all_feautures = torch.cat((history, chat_inf), dim=1)
-        res = self.summary_layer(all_feautures)
-
-        return res
-
-#============================================================================================
-# датасетики
-
-class MainDataset(Dataset):
-    def __init__(self, texts, tokenizer, max_len=512, market_features=5, emotions_count=4):
-        self.tokenizer = tokenizer
-        self.max_len = max_len
-        self.market_features = market_features
-        self.emotions_count = emotions_count
+        volume = max(1, int((confidence / 100) * 5))
         
-        self.samples = []
-        for text in texts:
-            tokens = tokenizer.encode(text).ids
-            for i in range(0, len(tokens) - max_len, max_len):
-                self.samples.append(tokens[i:i + max_len])
 
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, index):
-        tokens = torch.tensor(self.samples[index], dtype=torch.long)
+        negative_markers = ['кризис', 'упал', 'нестабильность', 'опасный', 'минус', 'паники', 'пофиг', 'риски', 'плохо']
+        positive_descriptions = ['отлично', 'успех', 'рост', 'шанс', 'готов', 'выиграем', 'вперед', 'купить']
         
-        prompt_seq = tokens
-        news_seq = tokens
-        target_seq = tokens 
-    
-        market_seq = torch.zeros((10, self.market_features), dtype=torch.float32) 
-        current_emotions = torch.zeros((self.emotions_count,), dtype=torch.float32)
+        thought_lower = thought.lower()
         
-        return market_seq, prompt_seq, news_seq, current_emotions, target_seq
-    
-#============================================================================================
 
-class World:
-    def __init__(self):
-        pass
+        if self.mood == 'оптимист' or self.mood == 'рискованный':
+            action = "buy"
+        elif self.mood == 'консерватист' or self.mood == 'интроверт':
+            action = "sell"
+        else:
+            action = random.choice(["buy", "sell"])
+            
+        if any(marker in thought_lower for marker in negative_markers):
+            action = "sell"
+        elif any(marker in thought_lower for marker in positive_descriptions):
+            action = "buy"
+            
+        return action, volume, thought

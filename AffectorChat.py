@@ -23,16 +23,6 @@ MOOD_NAMES = {
     "интуитивный": "Интуитивный"
 }
 
-MOOD_COLORS = {
-    "оптимист": "\033[92m",
-    "рискованный": "\033[93m",
-    "систематичный": "\033[94m",
-    "консерватист": "\033[96m",
-    "интроверт": "\033[90m",
-    "убежденный": "\033[95m",
-    "интуитивный": "\033[35m",
-}
-RESET = "\033[0m"
 
 chat_log = []
 
@@ -46,18 +36,17 @@ def print_messenger_message(sender_mood, text, confidence, timestamp=None):
         timestamp = time.strftime("%H:%M:%S")
     
     name = MOOD_NAMES.get(sender_mood, sender_mood)
-    color = MOOD_COLORS.get(sender_mood, "")
     
     if confidence >= 75:
-        conf_icon = "🟢"
+        conf_icon = ":)"
     elif confidence >= 50:
-        conf_icon = "🟡"
+        conf_icon = ":/"
     else:
-        conf_icon = "🔴"
+        conf_icon = ":("
         
-    print(f"{color}[{timestamp}] {name}{RESET}")
-    print(f"{color}   {conf_icon} уверенность ответа: {confidence}%{RESET}")
-    print(f"{color}   MSG: {text}{RESET}")
+    print(f"[{timestamp}] {name}")
+    print(f"{conf_icon} уверенность ответа: {confidence}%")
+    print(f"MSG: {text}")
     print('\n')
     
     message_entry = {

@@ -298,4 +298,147 @@ class AffectorText(AffectionBlock):
         except Exception as e:
             print(f"err: {e}")
             return None
+
+
+class AffectorSeller:
+    def __init__(self):
+        self.labels = ("buy", "sell", "hold")
+        self.doc_counts = {k: 0 for k in self.labels}
+        self.word_counts = {k: {} for k in self.labels}
+        self.total_words = {k: 0 for k in self.labels}
+        self.vocab = set()
+
+    def scores(self, prompt, news=None, sentiment=None):
+        if news is None:
+            news = []
+        if isinstance(news, str):
+            news = [news]
+
+        item = {"replics": [prompt], "news": news, "answer": ""}
+        tokens = self._tokenize(self._build_text(item, sentiment=sentiment))
+
+        total_docs = sum(self.doc_counts.values()) or 1
+        vocab_size = len(self.vocab) or 1
+        scores = {}
+
+        for label in self.labels:
+            prior = (self.doc_counts[label] + 1) / (total_docs + len(self.labels))
+            score = math.log(prior)
+            denom = self.total_words[label] + vocab_size
+            wc = self.word_counts[label]
+            for tok in tokens:
+                score += math.log((wc.get(tok, 0) + 1) / denom)
+            scores[label] = score
+
+        return scores
+
+    def _tokenize(self, text):
+        if not text:
+            return []
+        cleaned = []
+        for ch in text.lower():
+            if ch.isalnum() or ch in ("_", "-", " "):
+                cleaned.append(ch)
+            else:
+                cleaned.append(" ")
+        return [t for t in "".join(cleaned).split() if t]
+
+    def _build_text(self, item, sentiment=None):
+        replics = item.get("replics", []) or []
+        news = item.get("news", []) or []
+        answer = item.get("answer", "") or ""
+        sent = sentiment
+        if sent is None:
+            sentiments = item.get("sentiments") or []
+            sent = sentiments[0] if sentiments else None
+        sent_part = f" [SENTIMENT] {sent} " if sent else " "
+        return f'{" ".join(replics)} [NEWS] {" ".join(news)}{sent_part}[ANS] {answer}'
+
+    def train(self, json_file_path, sentiment=None):
+        with open(json_file_path, 'r', encoding='utf-8') as f:
+            dataset = json.load(f)
+
+        for item in dataset:
+            if sentiment is not None:
+                sentiments = item.get("sentiments") or []
+                item_sent = sentiments[0] if sentiments else None
+                if item_sent != sentiment:
+                    continue
+
+            label = (item.get("decision") or "hold").strip().lower()
+            if label not in self.doc_counts:
+                label = "hold"
+
+            self.doc_counts[label] += 1
+            tokens = self._tokenize(self._build_text(item, sentiment=sentiment))
+            wc = self.word_counts[label]
+            for tok in tokens:
+                self.vocab.add(tok)
+                wc[tok] = wc.get(tok, 0) + 1
+                self.total_words[label] += 1
+
+        return self
+
+    def predict(self, prompt, news=None, sentiment=None):
+        scores = self.scores(prompt=prompt, news=news, sentiment=sentiment)
+        return max(scores, key=scores.get)
+
+    def predict_with_confidence(self, prompt, news=None, sentiment=None):
+        if news is None:
+            news = []
+        if isinstance(news, str):
+            news = [news]
+
+        item = {"replics": [prompt], "news": news, "answer": ""}
+        tokens = self._tokenize(self._build_text(item, sentiment=sentiment))
+
+        total_docs = sum(self.doc_counts.values()) or 1
+        vocab_size = len(self.vocab) or 1
+        raw = []
+
+        for label in self.labels:
+            prior = (self.doc_counts[label] + 1) / (total_docs + len(self.labels))
+            score = math.log(prior)
+            denom = self.total_words[label] + vocab_size
+            wc = self.word_counts[label]
+            for tok in tokens:
+                score += math.log((wc.get(tok, 0) + 1) / denom)
+            raw.append((label, score))
+
+        raw.sort(key=lambda x: x[1], reverse=True)
+        best_label, best_score = raw[0]
+        second_score = raw[1][1] if len(raw) > 1 else best_score - 10.0
+
+        margin = best_score - second_score
+        confidence = int(max(10, min(99, 50 + margin * 12)))
+        return best_label, confidence
+
+    def save(self, filename="affector_seller.pkl"):
+        data = {
+            "labels": self.labels,
+            "doc_counts": self.doc_counts,
+            "word_counts": self.word_counts,
+            "total_words": self.total_words,
+            "vocab": self.vocab,
+        }
+        with open(filename, "wb") as f:
+            pickle.dump(data, f)
+        print(f"model was saved as {filename}")
+
+    def load(self, filename="affector_seller.pkl"):
+        if not os.path.exists(filename):
+            return False
+        try:
+            with open(filename, "rb") as f:
+                data = pickle.load(f)
+            self.labels = tuple(data.get("labels", self.labels))
+            self.doc_counts = data.get("doc_counts", self.doc_counts)
+            self.word_counts = data.get("word_counts", self.word_counts)
+            self.total_words = data.get("total_words", self.total_words)
+            self.vocab = data.get("vocab", self.vocab)
+            print(f"succesful {filename}")
+            return True
+        except Exception as e:
+            print(f"err: {e}")
+            return False
         
