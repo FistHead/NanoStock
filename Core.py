@@ -12,6 +12,11 @@ class Core:
         while self.requests_queue:
             request = self.requests_queue.pop(0)
             request.complete()
+            
+            
+    def select_emotion(emotions, miple):
+        pass
+        
 
 class User:
     def __init__(self, name, balance, core):
