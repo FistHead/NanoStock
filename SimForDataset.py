@@ -1,12 +1,18 @@
+import json
+
 from Core import User, Request, Stock, Core, Event 
 import matplotlib.pyplot as plt
 import random
 from faker import Faker
-from Affectors import AffectorSeller
 
-users_count = 8
+
+file_path = "simulation_data.json"
+
+
+
+users_count = 16
 stocks_count = 8
-epochs = 5000
+epochs = 10000
 fake = Faker('ru_RU')
 
 users = []
@@ -16,27 +22,9 @@ core = Core()
 event_chance = 0.001
 active_events_log = []
 
-SELLER_DATASET_PATH = "AffectorSellerDataset.json"
-SENTIMENTS = ["рискованный", "оптимист", "консерватист", "систематичный", "интроверт", "убежденный", "интуитивный"]
-
-GLOBAL_MODEL_PATH = "affector_seller_global.pkl"
-global_seller = AffectorSeller()
-if not global_seller.load(GLOBAL_MODEL_PATH):
-    global_seller.train(SELLER_DATASET_PATH)
-    global_seller.save(GLOBAL_MODEL_PATH)
-
-sellers = {}
-for s in SENTIMENTS:
-    model_path = f"affector_seller_{s}.pkl"
-    m = AffectorSeller()
-    if not m.load(model_path):
-        m.train(SELLER_DATASET_PATH, sentiment=s)
-        m.save(model_path)
-    sellers[s] = m
 
 for i in range(users_count):
     u = User(fake.first_name(), random.randint(1000, 5000), core)
-    u.sentiment = random.choice(SENTIMENTS)
     users.append(u)
     
 for i in range(stocks_count):
@@ -50,7 +38,7 @@ wealth_histories = {user.name: [] for user in users}
 events_classes = ['Кризис на рынке','Появление нового конкурента','Успешный квартал','Провальный квартал','Уход топ-менеджера','Выход нового продукта','Положительные отзывы о продукте','Негативные отзывы о продукте','Рост популярности отрасли']
 events = [Event(description=events_classes[i], impact=random.uniform(0.8, 1.2), stocks_affected=random.sample(stocks, k=random.randint(1, len(stocks)))) for i in range(len(events_classes))]
 
-
+data = []
 for epoch in range(epochs):
     
     if random.random() < event_chance:
@@ -62,27 +50,7 @@ for epoch in range(epochs):
 
     for user in users:
         stock = random.choice(stocks)
-        prompt = f"Пользователь {user.name} рассматривает акцию {stock.name} по цене {stock.get_price()}"
-        seller = sellers[user.sentiment]
-        gs = global_seller.scores(prompt=prompt, news=recent_news, sentiment=user.sentiment)
-        ss = seller.scores(prompt=prompt, news=recent_news, sentiment=user.sentiment)
-        alpha = 0.35
-        combo = {k: (1 - alpha) * gs[k] + alpha * ss[k] for k in gs}
-
-        if user.sentiment in ("рискованный", "оптимист"):
-            combo["buy"] += 0.25
-        elif user.sentiment == "консерватист":
-            combo["sell"] += 0.25
-        elif user.sentiment == "систематичный":
-            combo["hold"] += 0.15
-        elif user.sentiment == "интроверт":
-            combo["hold"] += 0.25
-        elif user.sentiment == "убежденный":
-            combo["hold"] += 0.2
-        elif user.sentiment == "интуитивный":
-            combo["hold"] += 0.1
-
-        action = max(combo, key=combo.get)
+        action = random.choice(["buy", "sell"])
         count = random.randint(1, 10)
         
         if action == "buy":
@@ -94,6 +62,8 @@ for epoch in range(epochs):
     
     for stock in stocks:
         price_histories[stock.name].append(stock.get_price())
+        data.append(stock.get_step_info(price_histories[stock.name]))
+
     
 
     for user in users:
@@ -103,6 +73,9 @@ for epoch in range(epochs):
         )
         total_wealth = user.balance + stock_value
         wealth_histories[user.name].append(total_wealth)
+
+with open(file_path, "w") as f: 
+    json.dump(data, f, indent=4, ensure_ascii=False)
 
 # графики
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 10))

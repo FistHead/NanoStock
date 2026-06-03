@@ -67,12 +67,10 @@ class Request:
             self.user.holdings[self.stock.name] = self.user.holdings.get(self.stock.name, 0) + self.count
             self.stock.holders[self.user.name] = self.stock.holders.get(self.user.name, 0) + self.count
             
-            # Рост цены: умножение на (1 + delta)
             coefficient = 1 + delta
             self.stock.apply_impact(coefficient)
             
         elif self.type == "sell":
-            # Начисление денег по актуальной цене исполнения ордера
             current_price = self.stock.get_price()
             payout = current_price * self.count
             self.user.balance += payout
@@ -142,50 +140,10 @@ class Bot(User):
 class Event:
     def __init__(self, description, impact, stocks_affected):
         self.description = description
-        self.impact = impact  # Коэффициент вроде 1.05 или 0.95
+        self.impact = impact
         self.stocks_affected = stocks_affected
 
     def apply(self):
         for stock in self.stocks_affected:
             stock.apply_impact(self.impact)
             
-class Bot(User):
-    def __init__(self, name, balance, core, mood, affector_model, word_blocks, idx_2w):
-        super().__init__(name, balance, core)
-        self.mood = mood
-        self.affector_model = affector_model
-        self.word_blocks = word_blocks
-        self.idx_2w = idx_2w
-
-    def evaluate_market(self, news_context, stock):
-        """ Бот анализирует новость через AffectorText и принимает торговое решение """
-        thought, confidence = self.affector_model.generate_with_confidence(
-            prompt=news_context,
-            current_mood=self.mood,
-            word_blocks=self.word_blocks,
-            idx_2w=self.idx_2w,
-            max_len=15
-        )
-        
-        volume = max(1, int((confidence / 100) * 5))
-        
-
-        negative_markers = ['кризис', 'упал', 'нестабильность', 'опасный', 'минус', 'паники', 'пофиг', 'риски', 'плохо']
-        positive_descriptions = ['отлично', 'успех', 'рост', 'шанс', 'готов', 'выиграем', 'вперед', 'купить']
-        
-        thought_lower = thought.lower()
-        
-
-        if self.mood == 'оптимист' or self.mood == 'рискованный':
-            action = "buy"
-        elif self.mood == 'консерватист' or self.mood == 'интроверт':
-            action = "sell"
-        else:
-            action = random.choice(["buy", "sell"])
-            
-        if any(marker in thought_lower for marker in negative_markers):
-            action = "sell"
-        elif any(marker in thought_lower for marker in positive_descriptions):
-            action = "buy"
-            
-        return action, volume, thought
