@@ -1,9 +1,11 @@
 import math
 import random
 
+# класс ядра
 class Core:
     def __init__(self):
         self.requests_queue = []
+        self.days = 0
     
     def add_request(self, request):
         self.requests_queue.append(request)
@@ -11,13 +13,12 @@ class Core:
     def process_requests(self):
         while self.requests_queue:
             request = self.requests_queue.pop(0)
-            request.complete()
-            
+            request.complete()    
             
     def select_emotion(emotions, miple):
         pass
         
-
+# класс юзера
 class User:
     def __init__(self, name, balance, core):
         self.name = name
@@ -57,7 +58,7 @@ class User:
             return True
         return False
 
-
+# класс запроса
 class Request:
     def __init__(self, type, stock, count, user):
         self.type = type
@@ -88,7 +89,7 @@ class Request:
             coefficient = 1 / (1 + delta)
             self.stock.apply_impact(coefficient)
 
-
+# класс акции
 class Stock:
     def __init__(self, name, count, invested):
         self.name = name
@@ -135,20 +136,91 @@ class Stock:
     def get_total_count(self):
         return self.total_shares
 
-
+# класс бота (скорее всего будет удален)
 class Bot(User):
     def __init__(self, name, balance, core, strategy):
         super().__init__(name, balance, core)
         self.strategy = strategy
 
-
+# класс события
 class Event:
     def __init__(self, description, impact, stocks_affected):
         self.description = description
-        self.impact = impact
+        self.impact = impact # коэф влияния
         self.stocks_affected = stocks_affected
 
     def apply(self):
         for stock in self.stocks_affected:
             stock.apply_impact(self.impact)
+
+# класс фокуса    
+class Focus:
+    def __init__(self, description, action, days):
+        self.description = description
+        self.action = action
+        self.days = days
+        
+    def set_parameters(self, desc, ac):
+        self.description = desc
+        self.action = ac
+        print(f'desc has changed to {desc}\naction has changed to {ac}')
+        
+# класс оружия    
+class Weapon:
+    def __init__(self, type, attack_power, ico):
+        self.type = type
+        self.attack_power = attack_power
+        self.ico = ico
+
+# пехотная дивизия
+class InfantryDivision:
+    def __init__(self,name, weapons_in, man_power):
+        self.name = name
+        self.weapons_in = weapons_in
+        self.man_power = man_power
+        
+# класс дивизии
+class Division:
+    def __init__(self, army_types_in):
+        self.army_types_in = army_types_in
+        self.speed = 0
+        self.attack = 0
+        self.protection = 0
+        self.attack_index = 1
+        self.organization = 1
+        self.level = 0
+        self.basic_train_time = 20
+        
+        
+# класс террейна
+class Terrain:
+    def __init__(self, move_factor, attack_factor, deffence_factor, desc):
+        self.move_factor = move_factor
+        self.attack_factor = attack_factor
+        self.deffence_factor = deffence_factor
+        self.desc = desc
+    
+# класс ячейки территории
+class TerritoryCell:
+    def __init__(self, position, terrain: Terrain, divisions_on_cell, fortifications):
+        self.pos = position
+        self.terrain = terrain
+        self.fortifications = fortifications
+        self.div_on_cell = divisions_on_cell
+        
+    def apply_factors(self):
+        for division in self.div_on_cell:
+            division.attack = division.attack * self.terrain.attack_factor
+            division.move = division.move * self.terrain.move_factor
+            division.protection = division.protection * self.terrain.deffence_factor + (self.fortifications)
             
+
+# класс страны
+class Country:
+    def __init__(self, core: Core, territory, residents, leader, focus_branch):
+        self.core = core
+        self.territory = territory
+        self.residents = residents
+        self.leader = leader
+        self.focus_branch = focus_branch
+
