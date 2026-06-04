@@ -275,4 +275,12 @@ function closeProfile() { document.getElementById('profile-modal').classList.rem
 function round2(v) { return Math.round(v * 100) / 100; }
 
 window.addEventListener('resize', renderChart);
+
+// клик по планете — развернуть на всю левую колонку
+document.getElementById('planet-card').onclick = () => {
+  const side = document.getElementById('col-side');
+  const open = side.classList.toggle('planet-expanded');
+  document.getElementById('planet-card').title = open ? 'Нажми, чтобы свернуть' : 'Нажми, чтобы развернуть';
+};
+
 load();

@@ -69,3 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   paintWheel();
 });
+
+// перекрасить сегменты при смене темы
+document.getElementById('theme-toggle')?.addEventListener('click', () => setTimeout(paintWheel, 0));
