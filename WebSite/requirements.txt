@@ -1,0 +1,4 @@
+Flask>=3.0
+torch>=2.0
+tokenizers>=0.20
+numpy>=1.26

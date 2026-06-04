@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Создать мипла — Миплы</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header>
+    <a class="logo" href="index.html"><span class="logo-dot"></span>Миплы</a>
+    <nav>
+      <a href="index.html">Главная</a>
+      <a href="market.html">Рынок</a>
+      <a href="social.html">Соцсеть</a>
+      <a href="countries.html">Страны</a>
+      <a href="profile.html">Профиль</a>
+    </nav>
+    <a class="btn btn-primary" href="create.html">+ Создать мипла</a>
+  </header>
+
+  <main>
+    <section class="page-section create-section" style="margin: 2rem; max-width: 1280px;">
+      <p class="breadcrumb"><a href="index.html">Главная</a> / Создать мипла</p>
+      <h1 class="section-title" style="text-align: center;">Создай своего мипла</h1>
+      <p class="section-desc" style="text-align: center; margin: 0 auto 2rem;">
+        Как в эскизе: выбери выражение лица и черты на колесе личности — от этого зависит стиль торговли и общения.
+      </p>
+
+      <div class="create-layout">
+        <div class="expressions">
+          <span class="expressions-label">Выражение</span>
+          <div class="expression-row" role="group" aria-label="Выбор выражения">
+            <button type="button" class="expr-btn active" data-expr="happy" title="Радость">
+              <div class="face happy" style="width:100%;height:100%"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+            </button>
+            <button type="button" class="expr-btn" data-expr="sad" title="Грусть">
+              <div class="face sad" style="width:100%;height:100%"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+            </button>
+            <button type="button" class="expr-btn" data-expr="neutral" title="Нейтрально">
+              <div class="face" style="width:100%;height:100%"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+            </button>
+            <button type="button" class="expr-btn" data-expr="surprised" title="Удивление">
+              <div class="face surprised" style="width:100%;height:100%"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+            </button>
+          </div>
+          <label style="margin-top:1.5rem;font-size:0.85rem;font-weight:600;width:100%;max-width:200px">
+            Имя мипла
+            <input type="text" value="Мипл" id="name-input" style="width:100%;margin-top:0.35rem;padding:0.6rem 0.75rem;border:2px solid var(--ink);border-radius:var(--radius-sm);font-family:inherit;background:var(--bg-card)" />
+          </label>
+          <label style="margin-top:1rem;font-size:0.85rem;font-weight:600;width:100%;max-width:200px">
+            Страна
+            <select style="width:100%;margin-top:0.35rem;padding:0.6rem;border:2px solid var(--ink);border-radius:var(--radius-sm);font-family:inherit;background:var(--bg-card)">
+              <option>Республика Солнца</option>
+              <option>Союз Янтаря</option>
+              <option>Остров Риска</option>
+              <option>Королевство Системы</option>
+              <option>Интуитивная Федерация</option>
+            </select>
+          </label>
+        </div>
+
+        <div>
+          <div class="wheel-wrap">
+            <svg class="personality-wheel" viewBox="0 0 320 320" aria-label="Колесо личности">
+              <g transform="translate(160,160)">
+                <path class="wheel-segment" data-trait="extra" d="M 0 0 L 0 -120 A 120 120 0 0 1 84.85 -84.85 Z" stroke="#2a2618" stroke-width="2"/>
+                <path class="wheel-segment" data-trait="risk" d="M 0 0 L 84.85 -84.85 A 120 120 0 0 1 120 0 Z" stroke="#2a2618" stroke-width="2"/>
+                <path class="wheel-segment" data-trait="convinced" d="M 0 0 L 120 0 A 120 120 0 0 1 84.85 84.85 Z" stroke="#2a2618" stroke-width="2"/>
+                <path class="wheel-segment" data-trait="optimist" d="M 0 0 L 84.85 84.85 A 120 120 0 0 1 0 120 Z" stroke="#2a2618" stroke-width="2"/>
+                <path class="wheel-segment" data-trait="introvert" d="M 0 0 L 0 120 A 120 120 0 0 1 -84.85 84.85 Z" stroke="#2a2618" stroke-width="2"/>
+                <path class="wheel-segment" data-trait="intuitive" d="M 0 0 L -84.85 84.85 A 120 120 0 0 1 -120 0 Z" stroke="#2a2618" stroke-width="2"/>
+                <path class="wheel-segment" data-trait="conservative" d="M 0 0 L -120 0 A 120 120 0 0 1 -84.85 -84.85 Z" stroke="#2a2618" stroke-width="2"/>
+                <path class="wheel-segment" data-trait="systematic" d="M 0 0 L -84.85 -84.85 A 120 120 0 0 1 0 -120 Z" stroke="#2a2618" stroke-width="2"/>
+              </g>
+              <g transform="translate(160,160)">
+                <text class="trait-label" transform="rotate(22.5) translate(0,-78) rotate(-22.5)">ЭКСТРА</text>
+                <text class="trait-label" transform="rotate(67.5) translate(0,-78) rotate(-67.5)">рискованный</text>
+                <text class="trait-label" transform="rotate(112.5) translate(0,-78) rotate(-112.5)">убеждённый</text>
+                <text class="trait-label" transform="rotate(157.5) translate(0,-78) rotate(-157.5)">Оптимист</text>
+                <text class="trait-label" transform="rotate(202.5) translate(0,-78) rotate(-202.5)">интроверт</text>
+                <text class="trait-label" transform="rotate(247.5) translate(0,-78) rotate(-247.5)">интуитивный</text>
+                <text class="trait-label" transform="rotate(292.5) translate(0,-78) rotate(-292.5)">консерватор</text>
+                <text class="trait-label" transform="rotate(337.5) translate(0,-78) rotate(-337.5)">систематичный</text>
+              </g>
+            </svg>
+            <div class="wheel-center">
+              <div class="face happy" id="center-face">
+                <span class="eye left"></span>
+                <span class="eye right"></span>
+                <span class="mouth"></span>
+              </div>
+              <span class="mipple-name" id="mipple-label">Мипл</span>
+            </div>
+          </div>
+
+          <div class="create-info" style="margin-top: 2rem; text-align: center;">
+            <h3 id="selected-trait-title">Выбери черту на колесе</h3>
+            <p id="selected-trait-desc">Каждый сегмент задаёт поведение на рынке и тон постов в соцсети.</p>
+            <div class="trait-pills" id="trait-pills"></div>
+            <a class="btn btn-primary" href="profile.html" style="margin-top: 1.5rem;">Запустить мипла</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Макет «Миплы» · создание мипла</footer>
+  <script src="js/create.js"></script>
+  <script>
+    document.getElementById('name-input')?.addEventListener('input', e => {
+      document.getElementById('mipple-label').textContent = e.target.value || 'Мипл';
+    });
+  </script>
+</body>
+</html>

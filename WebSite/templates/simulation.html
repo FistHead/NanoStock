@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ sim_name }} — Миплы</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body data-sim-id="{{ sim_id }}">
+  <header>
+    <a class="logo" href="/"><span class="logo-dot"></span>Миплы</a>
+    <nav>
+      <a href="/">О проекте</a>
+      <a href="/simulations">Симуляции</a>
+    </nav>
+    <div class="header-right">
+      <button class="theme-toggle" id="theme-toggle" title="Тема">🌙</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-section">
+      <!-- верхняя панель -->
+      <div class="sim-topbar">
+        <p class="breadcrumb" style="margin:0;"><a href="/simulations">Симуляции</a> / {{ sim_name }}</p>
+        <h1 class="section-title" style="margin:0;">{{ sim_name }}</h1>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" id="step-1">▶ Шаг</button>
+        <button class="btn btn-ghost" id="step-5">▶▶ 5 шагов</button>
+        <button class="btn btn-accent" id="auto-run">⚡ Авто-прогон</button>
+      </div>
+
+      <div class="sim-grid3">
+        <!-- слева: планета, настройки, окно редактирования -->
+        <div class="col-side">
+          <div class="card planet-card">
+            <div class="planet"><span class="ring"></span></div>
+            <div class="planet-label">3D-планета миплов<br><span>в разработке</span></div>
+          </div>
+
+          <div class="card settings-card">
+            <h3>Настройки</h3>
+            <label class="field">Скорость авто-прогона
+              <select class="input" id="set-speed">
+                <option value="3000">медленно</option>
+                <option value="1600" selected>средне</option>
+                <option value="800">быстро</option>
+              </select>
+            </label>
+            <label class="field">Шагов за клик «Шаг»
+              <input class="input" id="set-steps" type="number" min="1" max="25" value="1" />
+            </label>
+            <label class="check"><input type="checkbox" id="set-toast" checked /> Уведомлять о событиях</label>
+            <label class="check"><input type="checkbox" id="set-autoscroll" checked /> Автопрокрутка чата</label>
+            <label class="check"><input type="checkbox" id="set-sphere" checked /> Показывать сферу акции</label>
+            <div class="hint-small">Колесо мыши — масштаб, перетаскивание — прокрутка графика.</div>
+          </div>
+
+          <a class="edit-bar" href="/simulations">✓ Окно редактирования симуляции</a>
+        </div>
+
+        <!-- центр: график + аналитика рынка по сферам -->
+        <div class="col-main">
+          <div class="card chart-card">
+            <span class="day-badge" id="step-badge"><span class="coin">₩</span>шаг 0</span>
+            <div class="chart-toolbar">
+              <span class="sphere-tag" id="stock-sphere" style="margin-left:auto;"></span>
+              <select class="input" id="stock-select" style="padding:0.35rem 0.6rem; font-size:0.82rem;"></select>
+              <div class="seg" id="chart-mode">
+                <button data-mode="candle" class="active">Свечи</button>
+                <button data-mode="line">Линия</button>
+                <button data-mode="area">Область</button>
+              </div>
+            </div>
+            <canvas class="chart-box" id="chart"></canvas>
+            <div class="chart-legend">
+              <span><span class="swatch" style="background:var(--green)"></span>рост</span>
+              <span><span class="swatch" style="background:var(--red)"></span>падение</span>
+              <span id="price-now"></span>
+            </div>
+          </div>
+
+          <div class="card market-card">
+            <div class="card-header"><h3>Аналитика рынка</h3><span class="live run" id="market-live">состояние</span></div>
+            <div class="market-summary" id="market-summary"></div>
+            <div class="sphere-head">По сферам</div>
+            <div id="sphere-list"></div>
+          </div>
+        </div>
+
+        <!-- справа: чат миплов + переключатель и фильтр -->
+        <div class="card chat-card">
+          <div class="tabs" id="view-tabs">
+            <button class="tab active" data-view="chat">Переписка</button>
+            <button class="tab" data-view="decisions">Решения</button>
+            <button class="tab" data-view="assets">Активы</button>
+            <button class="tab" data-view="events">События</button>
+          </div>
+          <div class="chat-filter">
+            <span>Мипл:</span>
+            <select class="input" id="miple-filter"><option value="">все</option></select>
+          </div>
+          <div class="feed" id="feed"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- профиль мипла -->
+  <div class="modal-backdrop" id="profile-modal">
+    <div class="modal">
+      <button class="modal-close" id="profile-close" title="Закрыть">✕</button>
+      <div class="profile-head">
+        <div class="profile-ava" id="profile-ava"></div>
+        <div>
+          <div class="profile-name" id="profile-name"></div>
+          <div class="profile-model" id="profile-model"></div>
+          <div class="trait-pills" id="profile-traits" style="justify-content:flex-start;"></div>
+        </div>
+      </div>
+      <div class="profile-stats" id="profile-stats"></div>
+      <div class="sphere-head">График богатства</div>
+      <canvas class="chart-box" id="wealth-chart" style="height:200px;"></canvas>
+      <div class="sphere-head" style="margin-top:1rem;">Позиции</div>
+      <div id="profile-holdings"></div>
+    </div>
+  </div>
+
+  <footer>Миплы · окно симуляции</footer>
+  <div class="toast" id="toast"></div>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/chart.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/sim.js') }}"></script>
+</body>
+</html>
