@@ -9,3 +9,4 @@
 # Настройки среды разработки (JetBrains / PyCharm / VS Code)
 .idea/
 .vscode/
+Models/plipper_1B/plipper_1B.pth
