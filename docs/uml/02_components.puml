@@ -1,0 +1,44 @@
+@startuml miple_components
+skinparam componentStyle rectangle
+
+package "Клиент (браузер)" {
+  [HTML / CSS / JS] as UI
+  [chart.js\nsim.js\nsimulations.js\nwheel.js] as Front
+}
+
+package "WebSite" {
+  [app.py\nFlask + REST] as Flask
+  [engine.py\nSimulation] as Engine
+  [brains.py\nMrplipBrain\nAffectorBrain] as Brains
+  [miple_model.py] as Arch
+}
+
+package "Ядро" {
+  [Core.py] as Core
+  [Market\nOrderBook\nStock\nUser/Holder] as CoreTypes
+}
+
+package "Модели" {
+  [mrplip_17M_3.pth\n+ tokenizer] as NN
+  [Affectors.py\nграф реплик] as Graph
+  [MipleDataset.json] as Data
+}
+
+UI --> Front
+Front --> Flask : HTTP / JSON
+Flask --> Engine
+Engine --> Core
+Engine --> Brains
+Brains --> Arch
+Brains --> NN
+Brains --> Graph
+Brains --> Data
+Core --> CoreTypes
+
+note right of Engine
+  шаг симуляции:
+  события → миплы →
+  стакан → свечи → чат
+end note
+
+@enduml

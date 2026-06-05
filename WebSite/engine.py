@@ -6,7 +6,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-import Core  # ядро симуляции — не меняется
+import Core
 import brains
 
 EXPRESSIONS = ["happy", "sad", "neutral", "surprised"]
@@ -174,6 +174,8 @@ class Simulation:
                               "decision": res["decision"], "tactic": res["tactic"], "target": target})
 
         self.core.process_requests()
+        for stock in self.stocks.values():
+            stock.order_book.flush()
         self._organic_drift()  # фоновый шум после сделок — формирует тени свечей
 
         # запись свечей за шаг

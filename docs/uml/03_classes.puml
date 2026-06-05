@@ -1,0 +1,91 @@
+@startuml miple_classes
+skinparam classAttributeIconSize 0
+
+class Core {
+  +requests_queue
+  +market: Market
+  +add_request()
+  +process_requests()
+}
+
+class Market {
+  +users
+}
+
+class Stock {
+  +name
+  +total_shares
+  +holders
+  +price_history
+  +order_book: OrderBook
+  +get_price()
+  +apply_impact()
+}
+
+class OrderBook {
+  +want_to_buy
+  +want_to_sell
+  +last_price
+  +add_order()
+  +apply()
+  +flush()
+}
+
+class Order <<dataclass>> {
+  +type
+  +volume
+  +order_price
+}
+
+class Holder {
+  +name
+  +wc
+  +wallet
+  +order()
+}
+
+class User {
+  +balance
+  +holdings
+  +buy_stock()
+  +sell_stock()
+}
+
+class Event {
+  +description
+  +impact
+  +apply()
+}
+
+class Simulation {
+  +id
+  +stocks
+  +miples
+  +users
+  +chat
+  +candles
+  +step()
+  +snapshot()
+}
+
+class MrplipBrain {
+  +predict()
+}
+
+class AffectorBrain {
+  +predict()
+}
+
+Core "1" *-- "1" Market
+Stock "1" *-- "1" OrderBook
+OrderBook o-- Order
+User --|> Holder
+User --> Core : core
+Simulation "1" --> "1" Core
+Simulation "1" *-- "many" Stock
+Simulation "1" *-- "many" User
+Simulation ..> MrplipBrain
+Simulation ..> AffectorBrain
+Event ..> Stock : affects
+
+@enduml

@@ -1,0 +1,32 @@
+@startuml miple_sequence_step
+actor User
+participant "sim.js" as JS
+participant "Flask\napp.py" as API
+participant "Simulation\nengine" as Eng
+participant "brains" as Brain
+participant "Core\nStock/OrderBook" as Core
+
+User -> JS : Шаг / авто-прогон
+JS -> API : POST /api/sims/{id}/step
+API -> Eng : step()
+
+Eng -> Eng : _maybe_event()\nEvent.apply()
+Eng -> Eng : _organic_drift()
+
+loop каждый мипл (случайный порядок)
+  Eng -> Brain : predict(рынок, новости, чат, сентименты)
+  Brain --> Eng : decision, tactic, text, target_stock
+  Eng -> Core : User.buy_stock / sell_stock
+  Core -> Core : OrderBook.add_order → apply()
+  Eng -> Eng : chat.append()
+end
+
+Eng -> Core : order_book.flush()
+Eng -> Eng : _organic_drift()
+Eng -> Eng : запись свечей, wealth
+
+Eng --> API : snapshot()
+API --> JS : JSON
+JS --> User : график, чат, аналитика
+
+@enduml
