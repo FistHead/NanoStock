@@ -3,11 +3,12 @@ import json
 import math
 import random
 
-# обёртки над двумя "мозгами" миплов: нейросеть mrplip_17M_3 и граф AffectorSeller
+
+SUPPORTED_MODELS = ("mrplip_17M_3", "minimip", "midmip", "AffectorSeller")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# порядок вектора личности (как в датасете)
+# порядок личностей
 SENTIMENTS = ["оптимист", "рискованный", "систематичный", "консерватист",
               "интроверт", "убежденный", "интуитивный"]
 
@@ -23,7 +24,7 @@ EVENTS_NEG = ["Кризис на рынке", "Появление нового �
               "Уход топ-менеджера", "Негативные отзывы о продукте", "Штраф от регулятора", "Утечка данных"]
 ALL_EVENTS = EVENTS_POS + EVENTS_NEG
 
-# соответствие черт колеса личности сентиментам датасета
+# черты колеса личности
 TRAIT2SENT = {
     "optimist": "оптимист",
     "risk": "рискованный",
@@ -34,7 +35,7 @@ TRAIT2SENT = {
     "intuitive": "интуитивный",
 }
 
-# названия тактик по паре (решение, сентимент) — из логики датасета
+# названия тактик по паре (решение, сентимент)
 TACTICS = {
     ("buy", "рискованный"): "вход с плечом на импульсе",
     ("buy", "систематичный"): "лесенка покупок по тренду",
@@ -84,7 +85,7 @@ def dominant_sentiment(sentiments):
     return sentiments[0] if sentiments else "систематичный"
 
 
-# ------------------------- нейросеть mrplip_17M_3 -------------------------
+# нейросеть mrplip_17M_3 
 
 class MrplipBrain:
     name = "mrplip_17M_3"
@@ -138,7 +139,7 @@ class MrplipBrain:
         return vec.unsqueeze(0)
 
     def _sample(self, logits, temp):
-        # сэмплируем из softmax, чтобы решение не схлопывалось в одно на всю симуляцию
+        # сэмплируем из softmax
         probs = self.torch.softmax(logits / temp, dim=-1)
         return self.torch.multinomial(probs, 1).item()
 
@@ -182,7 +183,204 @@ class MrplipBrain:
         return {"answer": answer, "target_stock": chosen, "decision": decision, "tactic": tactic}
 
 
-# ------------------------- граф AffectorSeller -------------------------
+#plipper_1B (вырезан)
+
+class PlipperBrain:
+    name = "plipper_1B"
+
+    def __init__(self):
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from plipper_model import Plipper
+
+        self.torch = torch
+        self.device = "cpu"
+        model_dir = os.path.join(ROOT, "Models", "plipper_1B")
+        text_model_name = "Qwen/Qwen3-0.6B"
+        self.tokenizer = AutoTokenizer.from_pretrained(text_model_name)
+        txt_model = AutoModelForCausalLM.from_pretrained(text_model_name, torch_dtype=torch.float32)
+        self.model = Plipper(txt_model, 3, 7, 4, 3)
+        ckpt = torch.load(os.path.join(model_dir, "plipper_1B.pth"), map_location="cpu", weights_only=True)
+        self.model.load_state_dict(ckpt)
+        self.model.to(self.device)
+        self.model.eval()
+
+    def _persona(self, sentiments, base=0.1, strong=0.9):
+        vec = self.torch.full((len(SENTIMENTS),), base)
+        for s in sentiments:
+            if s in SENTIMENTS:
+                vec[SENTIMENTS.index(s)] = strong
+        return vec.tolist()
+
+    def _encode_stocks(self, stocks_states):
+        names = list(stocks_states.keys())
+        sector_map = {}
+        rows = []
+        for name in names:
+            sphere, price, dir_v, vol = stocks_states[name]
+            if sphere not in sector_map:
+                sector_map[sphere] = float(len(sector_map))
+            rows.append([sector_map[sphere], float(price), DIR_MAP.get(dir_v, 0.0), float(vol)])
+        return rows, names
+
+    def _sample(self, logits, temp):
+        probs = self.torch.softmax(logits / temp, dim=-1)
+        return self.torch.multinomial(probs, 1).item()
+
+    def predict(self, stocks_states, events, messages, sentiments, max_new=40, temperature=0.85, decision_temp=1.2):
+        torch = self.torch
+        rows, names = self._encode_stocks(stocks_states)
+        if not names:
+            return {"answer": "...", "target_stock": "", "decision": "hold", "tactic": "наблюдение за рынком"}
+
+        events_str = ", ".join(events) if events else "нет"
+        messages_str = " | ".join(messages) if messages else "тишина"
+        prompt = f"События: {events_str}\nЧат: {messages_str}\nТактика: наблюдение\nМысли:"
+
+        with torch.no_grad():
+            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            input_ids = inputs["input_ids"]
+            attention_mask = inputs["attention_mask"]
+            persona = torch.tensor([self._persona(sentiments)], dtype=torch.float32).to(self.device)
+            stocks_data = torch.tensor([rows], dtype=torch.float32).to(self.device)
+
+            _, _, stock_scores, decisions_logits = self.model(input_ids, attention_mask, persona, stocks_data)
+            decision = ["buy", "sell", "hold"][self._sample(decisions_logits[0], decision_temp)]
+            chosen = names[self._sample(stock_scores[0], decision_temp)]
+            tactic = TACTICS.get((decision, dominant_sentiment(sentiments)), "наблюдение за рынком")
+
+            generated_ids = input_ids.clone()
+            for _ in range(max_new):
+                attention_mask = torch.ones_like(generated_ids).to(self.device)
+                lm_logits, _, _, _ = self.model(generated_ids, attention_mask, persona, stocks_data)
+                logits = lm_logits[:, -1, :] / temperature
+                probs = torch.softmax(logits, dim=-1)
+                nxt = torch.multinomial(probs, 1)
+                generated_ids = torch.cat([generated_ids, nxt], dim=1)
+                if nxt.item() == self.tokenizer.eos_token_id:
+                    break
+
+            answer = self.tokenizer.decode(generated_ids[0][input_ids.shape[1]:], skip_special_tokens=True).strip()
+
+        return {"answer": answer or "...", "target_stock": chosen, "decision": decision, "tactic": tactic}
+
+
+# minimip / midmip одинаковая архитектура, но разные размеры ембеддингов и выхода
+
+class MiniMipBrain:
+    def __init__(self, model_name="minimip"):
+        import torch
+        from tokenizers import Tokenizer
+        from minimip_model import MiniMip
+
+        self.name = model_name
+        self.torch = torch
+        model_dir = os.path.join(ROOT, "Models", model_name)
+        cfg_path = os.path.join(model_dir, f"{model_name}_config.json")
+        with open(cfg_path, encoding="utf-8") as f:
+            self.cfg = json.load(f)
+
+        tok_name = self.cfg.get("tokenizer", f"{model_name}_tokenizer.json")
+        self.tokenizer = Tokenizer.from_file(os.path.join(model_dir, tok_name))
+
+        arch = self.cfg
+        self.model = MiniMip(
+            vocab_size=self.tokenizer.get_vocab_size(),
+            embedding_dim=arch["embedding_dim"],
+            n_heads=arch["n_heads"],
+            block_size=arch["block_size"],
+            n_layers=arch["n_layers"],
+            sentimens_count=arch["sentimens_count"],
+            emotions_count=arch["emotions_count"],
+        )
+
+        ckpt = None
+        for ckpt_name in (arch.get("checkpoint"), arch.get("checkpoint_fallback")):
+            if not ckpt_name:
+                continue
+            ckpt_path = os.path.join(model_dir, ckpt_name)
+            if os.path.isfile(ckpt_path):
+                ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+                break
+        if ckpt is None:
+            raise FileNotFoundError(f"нет чекпоинта {model_name} в {model_dir}")
+
+        self.model.load_state_dict(ckpt, strict=False)
+        self.model.eval()
+
+        inf = self.cfg.get("inference", {})
+        self.max_new = inf.get("max_new", 80)
+        self.min_new = inf.get("min_new", 5)
+        self.temperature = inf.get("temperature", 0.8)
+        self.decision_temp = inf.get("decision_temp", 1.2)
+        self.max_stocks = arch.get("max_stocks", 8)
+        self.decisions = self.cfg.get("decisions", ["buy", "sell", "hold"])
+        pr = self.cfg.get("prompt", {})
+        self.message_sep = pr.get("message_sep", "[MESSAGE]")
+        self.news_sep = pr.get("news_sep", "[NEWS]")
+
+    def _persona(self, sentiments, base=0.1, strong=0.9):
+        vec = self.torch.full((len(SENTIMENTS),), base)
+        for s in sentiments:
+            if s in SENTIMENTS:
+                vec[SENTIMENTS.index(s)] = strong
+        return vec.tolist()
+
+    def _encode_stocks(self, stocks_states):
+        names = list(stocks_states.keys())
+        data = {}
+        for name in names:
+            _, price, _, vol = stocks_states[name]
+            data[name] = [float(price), float(vol)]
+        return data, names
+
+    def _sample(self, logits, temp):
+        probs = self.torch.softmax(logits / temp, dim=-1)
+        return self.torch.multinomial(probs, 1).item()
+
+    def predict(self, stocks_states, events, messages, sentiments, **kw):
+        stocks_data, names = self._encode_stocks(stocks_states)
+        if not names:
+            return {"answer": "...", "target_stock": "", "decision": "hold", "tactic": "наблюдение за рынком"}
+
+        msgs = [m for m in (messages or []) if m and m.strip()]
+        if not msgs:
+            msgs = ["тишина на рынке"]
+
+        data = {
+            "messages": msgs,
+            "news": events or [],
+            "sentiment": self._persona(sentiments),
+            "stocks_data": stocks_data,
+            "message_sep": self.message_sep,
+            "news_sep": self.news_sep,
+        }
+
+        temp = kw.get("temperature", self.temperature)
+        max_new = kw.get("max_new", self.max_new)
+        min_new = kw.get("min_new", self.min_new)
+        decision_temp = kw.get("decision_temp", self.decision_temp)
+
+        answer, chosen, _, decision_logits = self.model.generate(
+            self.tokenizer, max_new, data,
+            min_new=min_new, temperature=temp, max_stocks=self.max_stocks,
+        )
+
+        if chosen not in names:
+            chosen = names[0]
+
+        decision = self.decisions[self._sample(decision_logits, decision_temp)]
+        tactic = TACTICS.get((decision, dominant_sentiment(sentiments)), "наблюдение за рынком")
+
+        return {
+            "answer": answer.strip() or "...",
+            "target_stock": chosen,
+            "decision": decision,
+            "tactic": tactic,
+        }
+
+
+# AffectorSeller
 
 class AffectorBrain:
     name = "AffectorSeller"
@@ -191,7 +389,7 @@ class AffectorBrain:
         import sys
         if ROOT not in sys.path:
             sys.path.insert(0, ROOT)
-        # AffectionBlock — базовый "нейрон" модели AffectorSeller
+        # AffectionBlock
         from Affectors.Affectors import AffectionBlock
 
         self.AffectionBlock = AffectionBlock
@@ -201,7 +399,7 @@ class AffectorBrain:
         self._build()
 
     def _build(self):
-        # граф словесных связей из реплик датасета — на блоках AffectionBlock
+        # граф словесных связей из реплик датасета
         path = os.path.join(ROOT, "MipleDataset.json")
         answers = []
         try:
@@ -228,7 +426,7 @@ class AffectorBrain:
                     bb.entered_blocks.append(ba)
 
     def _generate(self, seed, max_length=14, temperature=0.7):
-        # блуждание по графу влияния от стартового слова
+        # блуждание по графу от стартового слова
         cur = self.blocks.get(self.word2idx.get(seed))
         if cur is None:
             cur = random.choice(list(self.blocks.values()))
@@ -289,11 +487,18 @@ class AffectorBrain:
         return {"answer": answer, "target_stock": chosen, "decision": decision, "tactic": tactic}
 
 
-# ленивый кэш загруженных мозгов
+# кэш загруженных моделей
 _CACHE = {}
 
 
 def get_brain(model_name):
+    if model_name not in SUPPORTED_MODELS:
+        model_name = "AffectorSeller"
     if model_name not in _CACHE:
-        _CACHE[model_name] = MrplipBrain() if model_name == "mrplip_17M_3" else AffectorBrain()
+        if model_name == "mrplip_17M_3":
+            _CACHE[model_name] = MrplipBrain()
+        elif model_name in ("minimip", "midmip"):
+            _CACHE[model_name] = MiniMipBrain(model_name)
+        else:
+            _CACHE[model_name] = AffectorBrain()
     return _CACHE[model_name]

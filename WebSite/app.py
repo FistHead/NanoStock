@@ -15,7 +15,7 @@ def get_sim(sim_id):
     return sim
 
 
-# ---- страницы ----
+# страницы
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -32,7 +32,7 @@ def simulation_page(sim_id):
     return render_template("simulation.html", sim_id=sim.id, sim_name=sim.name)
 
 
-# ---- api: список симуляций ----
+# апи для списка симуляций
 @app.get("/api/sims")
 def api_sims():
     return jsonify([s.meta() for s in SIMS.values()])
@@ -59,7 +59,7 @@ def api_delete_sim(sim_id):
     return jsonify({"ok": True})
 
 
-# ---- api: содержимое симуляции ----
+# апи для содержимого
 @app.get("/api/sims/<sim_id>/state")
 def api_state(sim_id):
     return jsonify(get_sim(sim_id).snapshot())

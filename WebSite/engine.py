@@ -25,19 +25,19 @@ class Simulation:
         self.id = _gen_id()
         self.name = name
         self.core = Core.Core()
-        self.stocks = {}        # name -> Core.Stock
-        self.candles = {}       # name -> [{open,high,low,close,vol}]
-        self.prev_close = {}    # name -> цена прошлого шага
+        self.stocks = {}
+        self.candles = {}       # [{open,high,low,close,vol}]
+        self.prev_close = {}
         self.miples = []        # [{id,name,model,traits,sentiments,expr}]
-        self.users = {}         # miple_id -> Core.User
-        self.chat = []          # реплики миплов
-        self.events = []        # лог событий
-        self.recent_events = [] # последние события для новостей
-        self.wealth = {}        # miple_id -> история богатства по шагам
-        self.seeded = set()     # миплы со стартовой позицией
+        self.users = {}     
+        self.chat = []  
+        self.events = []
+        self.recent_events = [] 
+        self.wealth = {}      
+        self.seeded = set()   
         self.step_no = 0
 
-    # ---- создание ----
+    # создание
     def add_stock(self, name, count, invested):
         if name in self.stocks:
             return False
@@ -65,7 +65,7 @@ class Simulation:
     def add_random_miple(self, model=None):
         name = random.choice(RANDOM_MIPLE_NAMES) + "_" + str(random.randint(1, 99))
         traits = random.sample(list(brains.TRAIT2SENT.keys()), random.randint(1, 2))
-        model = model or random.choice(["mrplip_17M_3", "AffectorSeller"])
+        model = model or random.choice(["mrplip_17M_3", "minimip", "midmip", "AffectorSeller"])
         return self.add_miple(name, model, traits, random.choice(EXPRESSIONS))
 
     def remove_miple(self, mid):
@@ -79,7 +79,7 @@ class Simulation:
         for _ in range(n_miples):
             self.add_random_miple(model)
 
-    # ---- симуляция ----
+    # получение состояния на шаге
     def _stocks_states(self):
         states = {}
         for name, stock in self.stocks.items():
@@ -105,14 +105,14 @@ class Simulation:
         return rec
 
     def _cap_count(self, stock, want):
-        # ограничиваем сделку долей от всех акций, иначе цена улетает экспоненциально
+        # ограничение сделки
         cap = max(1, int(stock.get_total_count() * 0.06))
         return max(0, min(int(want), cap))
 
     def _execute(self, user, stock, decision):
         price = stock.get_price()
         if decision == "buy":
-            # размер позиции немного варьируется — импульсы цены разной величины
+            # размер позиции немного варьируется
             want = (user.balance * random.uniform(0.08, 0.22)) / price if price > 0 else 0
             count = self._cap_count(stock, want)
             if count > 0:
@@ -123,13 +123,13 @@ class Simulation:
                 user.sell_stock(stock, self._cap_count(stock, max(1, int(held * random.uniform(0.3, 0.7)))))
 
     def _organic_drift(self):
-        # лёгкое естественное колебание цен — чтобы свечи были живыми, а не одинаковыми
+        # лёгкое естественное колебание цен
         for stock in self.stocks.values():
             for _ in range(random.randint(1, 3)):
                 stock.apply_impact(random.uniform(0.984, 1.017))
 
     def _seed_portfolios(self):
-        # стартовая позиция: миплу нужно чем-то владеть, иначе ему нечего продавать
+        # стартовая позиция
         for m in self.miples:
             if m["id"] in self.seeded:
                 continue
@@ -176,7 +176,7 @@ class Simulation:
         self.core.process_requests()
         for stock in self.stocks.values():
             stock.order_book.flush()
-        self._organic_drift()  # фоновый шум после сделок — формирует тени свечей
+        self._organic_drift()  # фоновый шум после сделок
 
         # запись свечей за шаг
         for name, stock in self.stocks.items():
@@ -195,7 +195,7 @@ class Simulation:
             self.wealth.setdefault(m["id"], []).append(round(worth, 2))
         return self.snapshot(event)
 
-    # ---- сериализация ----
+    # портфолио
     def portfolios(self):
         out = []
         for m in self.miples:
@@ -208,7 +208,7 @@ class Simulation:
         return out
 
     def _stock_change(self, name):
-        # изменение цены за последний шаг, %
+        # изменение цены за последний шаг в процентах
         c = self.candles.get(name)
         if not c or c[-1]["open"] == 0:
             return 0.0

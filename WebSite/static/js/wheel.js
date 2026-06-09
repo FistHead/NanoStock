@@ -1,4 +1,4 @@
-// колесо личности и выбор выражения — общее состояние для конструктора мипла
+// колесо личности
 const traits = {
   extra: { pill: 'ЭКСТРА' }, risk: { pill: 'рискованный' }, convinced: { pill: 'убеждённый' },
   optimist: { pill: 'Оптимист' }, introvert: { pill: 'интроверт' }, intuitive: { pill: 'интуитивный' },
@@ -9,7 +9,7 @@ const builder = { traits: new Set(), expr: 'happy', model: 'mrplip_17M_3' };
 window.builder = builder;
 
 function fillColor(active) {
-  // читаем актуальные значения темы
+  // значения темы
   const s = getComputedStyle(document.documentElement);
   return active ? s.getPropertyValue('--yellow').trim() : s.getPropertyValue('--bg-card').trim();
 }

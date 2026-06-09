@@ -6,8 +6,8 @@ let view = 'chat';
 let selectedStock = null;
 let mipleFilter = '';
 let autoTimer = null;
-let autoRunning = false; // флаг авто-прогона, чтобы стоп срабатывал мгновенно
-let chartView = { visible: 80, offset: 0 }; // окно просмотра графика: видимых свечей и сдвиг от конца
+let autoRunning = false; // флаг авто-прогона, чтобы стоп срабатывал мгновенно, иначе симуляция продолжится
+let chartView = { visible: 80, offset: 0 }; // окно просмотра графика: видимых свечей и сдвиг от конца и тп
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -157,7 +157,7 @@ async function doStep(n) {
   }
 }
 
-// ---- управление ----
+// управление шагов симуляции
 document.getElementById('step-1').onclick = () => doStep(+document.getElementById('set-steps').value || 1);
 document.getElementById('step-5').onclick = () => doStep(5);
 
@@ -234,7 +234,7 @@ document.querySelectorAll('#view-tabs .tab').forEach(t => {
   };
 });
 
-// клик по миплу — открыть профиль
+// кликнув по миплу можно открыть его профиль
 document.getElementById('feed').addEventListener('click', e => {
   const row = e.target.closest('[data-mid]');
   if (row) openProfile(row.dataset.mid);
@@ -276,7 +276,7 @@ function round2(v) { return Math.round(v * 100) / 100; }
 
 window.addEventListener('resize', renderChart);
 
-// клик по планете — развернуть на всю левую колонку
+// клик по планете (не работает как должно)
 document.getElementById('planet-card').onclick = () => {
   const side = document.getElementById('col-side');
   const open = side.classList.toggle('planet-expanded');

@@ -1,4 +1,4 @@
-// переключение светлой/тёмной темы
+// переключение темы
 (function () {
   const saved = localStorage.getItem('miple-theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);

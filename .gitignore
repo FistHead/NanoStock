@@ -1,12 +1,9 @@
-# Виртуальное окружение (самое главное!)
 .venv/
-
-# Кэш Python (чтобы не плодились папки __pycache__)
 **/__pycache__/
 *.pyc
 *.pyo
 *.pyd
-# Настройки среды разработки (JetBrains / PyCharm / VS Code)
 .idea/
 .vscode/
 Models/plipper_1B/plipper_1B.pth
+*.pth

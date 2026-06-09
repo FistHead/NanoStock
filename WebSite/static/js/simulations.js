@@ -1,4 +1,4 @@
-// управление списком симуляций и наполнение выбранной симуляции
+// управление списком симуляций и настройка
 let current = null; // {id, name}
 
 async function api(method, url, body) {
@@ -18,7 +18,7 @@ function toast(msg) {
   toast._t = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
-// ---- список ----
+// список симуляций
 async function loadSims() {
   const sims = await api('GET', '/api/sims');
   const list = document.getElementById('sim-list');
@@ -63,7 +63,7 @@ function startRename(row, s) {
   input.addEventListener('blur', commit);
 }
 
-// ---- создание ----
+// созлания симуляции
 document.getElementById('create-sim').onclick = async () => {
   const name = document.getElementById('new-sim-name').value;
   const sim = await api('POST', '/api/sims', { name });
@@ -84,7 +84,7 @@ document.getElementById('create-auto').onclick = async () => {
   location.href = `/sim/${sim.id}`;
 };
 
-// ---- редактор ----
+// редактор
 function hideEditor() {
   current = null;
   document.getElementById('editor').style.display = 'none';
@@ -131,6 +131,7 @@ function renderMiples(miples) {
   });
 }
 
+// надо доработать после защиты
 document.getElementById('add-stock').onclick = async () => {
   if (!current) return toast('Сначала выбери симуляцию');
   const name = document.getElementById('stock-name').value.trim();
@@ -144,6 +145,7 @@ document.getElementById('add-stock').onclick = async () => {
   document.getElementById('stock-name').value = '';
   refreshEditor();
 };
+
 
 document.getElementById('add-stock-random').onclick = async () => {
   if (!current) return toast('Сначала выбери симуляцию');
@@ -163,6 +165,7 @@ document.getElementById('add-miple').onclick = async () => {
   toast('Мипл добавлен');
 };
 
+// рандомный мипл
 document.getElementById('add-miple-random').onclick = async () => {
   if (!current) return toast('Сначала выбери симуляцию');
   await api('POST', `/api/sims/${current.id}/miples`, { random: true, model: window.builder.model });

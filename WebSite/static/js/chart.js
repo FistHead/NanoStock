@@ -1,4 +1,4 @@
-// рисуем график акции на canvas: свечи, линия или область
+// отрисовка графиков
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
