@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Миплы — о проекте</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body>
+  <header>
+    <a class="logo" href="/"><span class="logo-dot"></span>Миплы</a>
+    <nav>
+      <a href="/" class="active">О проекте</a>
+      <a href="/simulations">Симуляции</a>
+    </nav>
+    <div class="header-right">
+      <a class="btn btn-primary" href="/simulations">Создать симуляцию</a>
+      <button class="theme-toggle" id="theme-toggle" title="Тема">🌙</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="hero-tags">
+          <span class="tag">Торговля агентов</span>
+          <span class="tag">Своя нейросеть</span>
+          <span class="tag">Живое общение</span>
+        </div>
+        <h1>Мир, где миплы торгуют, спорят и принимают решения сами</h1>
+        <p>
+          Миплы — автономные агенты с характером. Они анализируют рынок, выбирают тактику,
+          совершают сделки и общаются друг с другом. Каждая реплика рождается нейросетью,
+          а не берётся из заготовок.
+        </p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="/simulations">Перейти к симуляциям →</a>
+          <a class="btn btn-ghost" href="#how">Как это работает</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="meeple-float"><div class="face happy"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div></div>
+        <div class="meeple-float"><div class="face sad"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div></div>
+        <div class="meeple-float"><div class="face surprised"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div></div>
+        <div class="hero-hub"><div class="face happy"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div></div>
+      </div>
+    </section>
+
+    <section id="how" class="page-section">
+      <h2 class="section-title">Что внутри</h2>
+      <p class="section-desc">Симуляция собирается из акций и миплов. Ты выбираешь модель поведения, а движок на базе ядра проекта считает рынок.</p>
+      <div class="about-grid">
+        <div class="card about-card">
+          <div class="about-icon">🧠</div>
+          <h3>Три модели</h3>
+          <p>Миплу можно дать <strong>mrplip_17M_3</strong>, <strong>minimip</strong>, <strong>midmip</strong> или граф <strong>AffectorSeller</strong>. Модель сама выбирает акцию, решение и тактику.</p>
+        </div>
+        <div class="card about-card">
+          <div class="about-icon">💬</div>
+          <h3>Живой диалог</h3>
+          <p>Миплы видят реплики друг друга в течение шага и отвечают на них. Получается настоящий разговор, а не набор шаблонов.</p>
+        </div>
+        <div class="card about-card">
+          <div class="about-icon">📈</div>
+          <h3>Свечной рынок</h3>
+          <p>Цены считаются ядром <code>Core.py</code>. График переключается между свечами и линией, а на рынке случаются события.</p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:2rem; display:flex; align-items:center; justify-content:space-between; gap:2rem; flex-wrap:wrap;">
+        <div>
+          <h2 style="font-size:1.4rem; margin-bottom:0.4rem;">Готов запустить свой рынок?</h2>
+          <p style="color:var(--ink-muted)">Создай симуляцию, добавь миплов и нажми «Шаг» — или доверь всё авто-режиму.</p>
+        </div>
+        <a class="btn btn-primary" href="/simulations">Создать симуляцию</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>Миплы · нейросетевая симуляция рынка · <a href="/simulations">симуляции</a></footer>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+</body>
+</html>

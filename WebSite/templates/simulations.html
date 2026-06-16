@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Симуляции — Миплы</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body>
+  <header>
+    <a class="logo" href="/"><span class="logo-dot"></span>Миплы</a>
+    <nav>
+      <a href="/">О проекте</a>
+      <a href="/simulations" class="active">Симуляции</a>
+    </nav>
+    <div class="header-right">
+      <button class="theme-toggle" id="theme-toggle" title="Тема">🌙</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-section">
+      <p class="breadcrumb"><a href="/">О проекте</a> / Симуляции</p>
+      <h1 class="section-title">Мои симуляции</h1>
+      <p class="section-desc">Создай симуляцию, наполни её акциями и миплами. Список можно переименовывать и удалять.</p>
+
+      <div class="create-bar">
+        <input class="input" id="new-sim-name" placeholder="Название симуляции" style="flex:1; min-width:200px;" />
+        <button class="btn btn-primary" id="create-sim">+ Создать</button>
+      </div>
+
+      <div class="create-bar auto-bar">
+        <span class="auto-label">⚡ Авто-симуляция:</span>
+        <label class="mini-field">миплов<input class="input" id="auto-miples" type="number" min="1" max="20" value="4" /></label>
+        <label class="mini-field">акций<input class="input" id="auto-stocks" type="number" min="1" max="20" value="5" /></label>
+        <label class="mini-field">модель
+          <select class="input" id="auto-model">
+            <option value="">случайно</option>
+            <option value="mrplip_17M_3">mrplip_17M_3</option>
+            <option value="minimip">minimip</option>
+            <option value="midmip">midmip</option>
+            <option value="AffectorSeller">AffectorSeller</option>
+          </select>
+        </label>
+        <button class="btn btn-ghost" id="create-auto">Создать и открыть</button>
+      </div>
+
+      <div class="sim-list" id="sim-list"></div>
+    </section>
+
+    <!-- редактор выбранной симуляции -->
+    <section class="page-section" id="editor" style="display:none;">
+      <h2 class="section-title" id="editor-title">Настройка</h2>
+      <div class="builder">
+        <!-- акции -->
+        <div class="panel">
+          <h3>Акции</h3>
+          <div class="row-2">
+            <label class="field">Название<input class="input" id="stock-name" placeholder="напр. вектор12" /></label>
+            <label class="field">Кол-во<input class="input" id="stock-count" type="number" value="1200" /></label>
+          </div>
+          <label class="field">Вложено (WC)<input class="input" id="stock-invested" type="number" value="4000" /></label>
+          <div class="create-bar" style="margin:0;">
+            <button class="btn btn-accent btn-sm" id="add-stock">Добавить акцию</button>
+            <button class="btn btn-ghost btn-sm" id="add-stock-random">🎲 Случайная</button>
+          </div>
+          <div id="stock-list" style="margin-top:1rem;"></div>
+        </div>
+
+        <!-- мипл -->
+        <div class="panel">
+          <h3>Создать мипла</h3>
+          <label class="field">Имя<input class="input" id="miple-name" value="Мипл" /></label>
+
+          <span class="field" style="margin-bottom:0.35rem;">Выражение</span>
+          <div class="expressions" id="expr-row">
+            <button type="button" class="expr-btn active" data-expr="happy" title="Радость"><div class="face happy" style="width:100%;height:100%"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div></button>
+            <button type="button" class="expr-btn" data-expr="sad" title="Грусть"><div class="face sad" style="width:100%;height:100%"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div></button>
+            <button type="button" class="expr-btn" data-expr="neutral" title="Нейтрально"><div class="face" style="width:100%;height:100%"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div></button>
+            <button type="button" class="expr-btn" data-expr="surprised" title="Удивление"><div class="face surprised" style="width:100%;height:100%"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div></button>
+          </div>
+
+          <div class="wheel-wrap">
+            <svg class="personality-wheel" viewBox="0 0 400 400" aria-label="Колесо личности">
+              <g transform="translate(200,200)">
+                <path class="wheel-segment" data-trait="extra" d="M 0 0 L 0 -155 A 155 155 0 0 1 109.6 -109.6 Z"/>
+                <path class="wheel-segment" data-trait="risk" d="M 0 0 L 109.6 -109.6 A 155 155 0 0 1 155 0 Z"/>
+                <path class="wheel-segment" data-trait="convinced" d="M 0 0 L 155 0 A 155 155 0 0 1 109.6 109.6 Z"/>
+                <path class="wheel-segment" data-trait="optimist" d="M 0 0 L 109.6 109.6 A 155 155 0 0 1 0 155 Z"/>
+                <path class="wheel-segment" data-trait="introvert" d="M 0 0 L 0 155 A 155 155 0 0 1 -109.6 109.6 Z"/>
+                <path class="wheel-segment" data-trait="intuitive" d="M 0 0 L -109.6 109.6 A 155 155 0 0 1 -155 0 Z"/>
+                <path class="wheel-segment" data-trait="conservative" d="M 0 0 L -155 0 A 155 155 0 0 1 -109.6 -109.6 Z"/>
+                <path class="wheel-segment" data-trait="systematic" d="M 0 0 L -109.6 -109.6 A 155 155 0 0 1 0 -155 Z"/>
+              </g>
+              <g transform="translate(200,200)">
+                <text class="trait-label" transform="rotate(22.5) translate(0,-118) rotate(-22.5)">ЭКСТРА</text>
+                <text class="trait-label" transform="rotate(67.5) translate(0,-118) rotate(-67.5)">рискованный</text>
+                <text class="trait-label" transform="rotate(112.5) translate(0,-118) rotate(-112.5)">убеждённый</text>
+                <text class="trait-label" transform="rotate(157.5) translate(0,-118) rotate(-157.5)">Оптимист</text>
+                <text class="trait-label" transform="rotate(202.5) translate(0,-118) rotate(-202.5)">интроверт</text>
+                <text class="trait-label" transform="rotate(247.5) translate(0,-118) rotate(-247.5)">интуитивный</text>
+                <text class="trait-label" transform="rotate(292.5) translate(0,-118) rotate(-292.5)">консерватор</text>
+                <text class="trait-label" transform="rotate(337.5) translate(0,-118) rotate(-337.5)">систематичный</text>
+              </g>
+            </svg>
+            <div class="wheel-center">
+              <div class="face happy" id="center-face"><span class="eye left"></span><span class="eye right"></span><span class="mouth"></span></div>
+              <span class="mipple-name" id="mipple-label">Мипл</span>
+            </div>
+          </div>
+          <div class="trait-pills" id="trait-pills"></div>
+
+          <span class="field" style="margin:1rem 0 0;">Модель поведения</span>
+          <div class="model-pick" id="model-pick">
+            <button type="button" class="model-opt active" data-model="mrplip_17M_3"><strong>mrplip_17M_3</strong><small>трансформер</small></button>
+            <button type="button" class="model-opt" data-model="minimip"><strong>minimip</strong><small>MiniMip 32M</small></button>
+            <button type="button" class="model-opt" data-model="midmip"><strong>midmip</strong><small>MidMip 126M</small></button>
+            <button type="button" class="model-opt" data-model="AffectorSeller"><strong>AffectorSeller</strong><small>граф влияния</small></button>
+          </div>
+
+          <div class="create-bar" style="margin:0.5rem 0 0;">
+            <button class="btn btn-primary btn-sm" id="add-miple">Добавить мипла</button>
+            <button class="btn btn-ghost btn-sm" id="add-miple-random">🎲 Случайный мипл</button>
+          </div>
+          <div id="miple-list" style="margin-top:1rem;"></div>
+        </div>
+      </div>
+
+      <div class="sim-controls" style="margin-top:1.5rem;">
+        <button class="btn btn-ghost" id="auto-fill">⚡ Заполнить автоматически</button>
+        <div class="spacer"></div>
+        <a class="btn btn-primary" id="open-sim" href="#">Открыть симуляцию →</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>Миплы · симуляции</footer>
+  <div class="toast" id="toast"></div>
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/wheel.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/simulations.js') }}"></script>
+</body>
+</html>

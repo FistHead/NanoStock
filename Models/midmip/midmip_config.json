@@ -1,0 +1,29 @@
+{
+  "model_id": "midmip",
+  "architecture": "MiniMip",
+  "params_m": 126,
+  "embedding_dim": 768,
+  "n_heads": 16,
+  "block_size": 512,
+  "n_layers": 16,
+  "sentimens_count": 7,
+  "emotions_count": 3,
+  "stock_signs_count": 2,
+  "max_stocks": 8,
+  "checkpoint": "midmip_finetuned.pth",
+  "checkpoint_fallback": null,
+  "tokenizer": "midmip_tokenizer.json",
+  "inference": {
+    "temperature": 0.8,
+    "decision_temp": 1.2,
+    "max_new": 80,
+    "min_new": 5
+  },
+  "prompt": {
+    "message_sep": "[MESSAGE]",
+    "news_sep": "[NEWS]",
+    "sos_token": "[SOS]",
+    "eos_token": "[EOS]"
+  },
+  "decisions": ["buy", "sell", "hold"]
+}
